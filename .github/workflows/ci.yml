@@ -39,7 +39,7 @@ jobs:
         run: echo "build-matrix=$(bash matrix.sh build)" >> "$GITHUB_OUTPUT"
 
   build-container:
-    name: Build ${{ matrix.os }} / ${{ matrix.platform }} CI container
+    name: Build OpenVox ${{ matrix.release }} ${{ matrix.os }} / ${{ matrix.platform }} CI container
     runs-on: ${{ matrix.runner }}
     needs:
       - setup-matrix
@@ -53,6 +53,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Change download folder for Release Candidates
+        id: download_folders
+        env:
+          SERVER_VERSION: ${{ matrix.server_version }}
+          DB_VERSION: ${{ matrix.db_version }}
+        run: |
+          server_download_folder="${SERVER_VERSION//-/\~}"
+          db_download_folder="${DB_VERSION//-/\~}"
+          echo "server_download_folder=$server_download_folder" >> "$GITHUB_OUTPUT"
+          echo "db_download_folder=$db_download_folder" >> "$GITHUB_OUTPUT"
+
       - name: Build image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
@@ -64,7 +75,9 @@ jobs:
           build-args: |
             OPENVOX_RELEASE=${{ matrix.release }}
             OPENVOXSERVER_VERSION=${{ matrix.server_version }}
+            OPENVOXSERVER_DOWNLOAD_FOLDER=${{ steps.download_folders.outputs.server_download_folder }}
             OPENVOXDB_VERSION=${{ matrix.db_version }}
+            OPENVOXDB_DOWNLOAD_FOLDER=${{ steps.download_folders.outputs.db_download_folder }}
             RUBYGEM_R10K=${{ matrix.rubygem_r10k }}
             RUBYGEM_RUGGED=${{ matrix.rubygem_rugged }}
             JDK_VERSION=${{ matrix.jdk_version }}
